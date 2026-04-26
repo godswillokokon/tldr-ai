@@ -50,7 +50,7 @@ func TestRecover_panicTo500(t *testing.T) {
 	mux.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("boom")
 	})
-	h := Recover(SecurityHeaders(RequestID(mux)))
+	h := Recover(SecurityHeaders(RequestID(CORS("")(mux))))
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/panic", nil))
 	if rr.Code != http.StatusInternalServerError {

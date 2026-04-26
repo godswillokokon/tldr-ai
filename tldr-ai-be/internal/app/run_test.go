@@ -8,8 +8,18 @@ import (
 	"testing"
 )
 
+func testEnvGet(k string) string {
+	switch k {
+	case "RATE_LIMIT_RPS":
+		return "0"
+	case "TRUST_PROXY", "CORS_ALLOW_ORIGIN":
+		return ""
+	}
+	return ""
+}
+
 func TestHealth_GET(t *testing.T) {
-	h := newHandler()
+	h := newHandlerWithEnv(testEnvGet)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 
@@ -37,7 +47,7 @@ func TestHealth_GET(t *testing.T) {
 }
 
 func TestHealth_HEAD(t *testing.T) {
-	h := newHandler()
+	h := newHandlerWithEnv(testEnvGet)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 
@@ -57,7 +67,7 @@ func TestHealth_HEAD(t *testing.T) {
 }
 
 func TestHealth_otherMethod(t *testing.T) {
-	h := newHandler()
+	h := newHandlerWithEnv(testEnvGet)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 

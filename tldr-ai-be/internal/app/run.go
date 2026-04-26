@@ -2,50 +2,48 @@ package app
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"tldr-ai-be/internal/ai"
 	"tldr-ai-be/internal/config"
-	"tldr-ai-be/internal/middleware"
-	"tldr-ai-be/internal/web"
+	"tldr-ai-be/internal/httpapi"
+	"tldr-ai-be/internal/ratelimit"
+	"tldr-ai-be/internal/service"
 )
 
 const (
 	defaultPort       = "8080"
 	shutdownTimeout   = 15 * time.Second
 	readHeaderTimeout = 5 * time.Second
-	readTimeout       = 15 * time.Second
-	writeTimeout      = 15 * time.Second
+	readWriteTimeout  = 2 * time.Minute
 	idleTimeout       = 120 * time.Second
 	maxHeaderBytes    = 1 << 20 // 1 MiB
 )
 
 func newHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", healthHandler)
-	h := http.Handler(mux)
-	h = middleware.RequestID(h)
-	h = middleware.SecurityHeaders(h)
-	h = middleware.Recover(h)
-	return h
+	return newHandlerWithEnv(os.Getenv)
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
+func newHandlerWithEnv(get func(string) string) http.Handler {
+	config.LogStartupEnvHint()
+	p, err := ai.NewProviderFromEnv(get)
+	if err != nil {
+		log.Printf("startup: AI provider: %v (set a valid ANTHROPIC_API_KEY; POST /api/processText returns 503 until then)", err)
 	}
-	if r.Method == http.MethodHead {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		return
+	var proc *service.TextProcessor
+	if p != nil {
+		proc = service.NewTextProcessor(p)
 	}
-	_ = web.WriteJSON(w, http.StatusOK, struct {
-		Status string `json:"status"`
-	}{Status: "ok"})
+	trust := strings.TrimSpace(get("TRUST_PROXY")) == "1"
+	cors := strings.TrimSpace(get("CORS_ALLOW_ORIGIN"))
+	lim := ratelimit.Init(get)
+	return httpapi.NewHandler(&httpapi.RouterDeps{Processor: proc}, trust, cors, lim)
 }
 
 // Run starts the HTTP server and blocks until SIGINT/SIGTERM or ListenAndServe fails.
@@ -57,8 +55,8 @@ func Run() error {
 		Addr:              addr,
 		Handler:           newHandler(),
 		ReadHeaderTimeout: readHeaderTimeout,
-		ReadTimeout:       readTimeout,
-		WriteTimeout:      writeTimeout,
+		ReadTimeout:       readWriteTimeout,
+		WriteTimeout:      readWriteTimeout,
 		IdleTimeout:       idleTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
 	}
