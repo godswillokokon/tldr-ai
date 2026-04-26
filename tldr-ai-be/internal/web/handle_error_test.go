@@ -30,12 +30,26 @@ func TestHandleError_validation(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/x", nil)
 	req.Header.Set("X-Request-ID", "r2")
 	rr := httptest.NewRecorder()
-	HandleError(rr, req, domain.NewValidationError("bad field"))
+	HandleError(rr, req, &domain.ValidationError{Message: "bad field"})
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("status: %d", rr.Code)
 	}
 	b, _ := io.ReadAll(rr.Body)
 	if string(b) != `{"error":"bad field"}` {
+		t.Fatalf("body: %s", b)
+	}
+}
+
+func TestHandleError_invalidAIOutput(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("X-Request-ID", "r4")
+	rr := httptest.NewRecorder()
+	HandleError(rr, req, &domain.InvalidAIOutputError{Message: "bad model", LogDetail: "x"})
+	if rr.Code != http.StatusBadGateway {
+		t.Fatalf("status: %d", rr.Code)
+	}
+	b, _ := io.ReadAll(rr.Body)
+	if string(b) != `{"error":"bad model"}` {
 		t.Fatalf("body: %s", b)
 	}
 }

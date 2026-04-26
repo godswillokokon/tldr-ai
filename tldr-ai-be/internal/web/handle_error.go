@@ -20,6 +20,7 @@ type errorResponse struct {
 // *errs.HTTPError uses status + PublicMessage; LogDetail is written to logs
 // (truncated) with the request id when set.
 // *domain.ValidationError returns 400.
+// *domain.InvalidAIOutputError returns 502 with a safe message; LogDetail is logged.
 // Any other error returns 500 with a generic message; the full error is logged
 // (truncated) with the request id.
 func HandleError(w http.ResponseWriter, r *http.Request, err error) {
@@ -42,8 +43,23 @@ func HandleError(w http.ResponseWriter, r *http.Request, err error) {
 
 	var ve *domain.ValidationError
 	if errors.As(err, &ve) {
-		msg := ve.Error()
-		_ = WriteJSON(w, http.StatusBadRequest, errorResponse{Error: msg})
+		if ve.LogDetail != "" {
+			log.Printf("%svalidation: %s (detail: %s)", logPrefix, ve.Message, truncate(ve.LogDetail, maxLogDetail))
+		} else {
+			log.Printf("%svalidation: %s", logPrefix, ve.Message)
+		}
+		_ = WriteJSON(w, http.StatusBadRequest, errorResponse{Error: ve.Error()})
+		return
+	}
+
+	var aio *domain.InvalidAIOutputError
+	if errors.As(err, &aio) {
+		if aio.LogDetail != "" {
+			log.Printf("%sinvalid_ai_output: %s (detail: %s)", logPrefix, aio.Message, truncate(aio.LogDetail, maxLogDetail))
+		} else {
+			log.Printf("%sinvalid_ai_output: %s", logPrefix, aio.Message)
+		}
+		_ = WriteJSON(w, http.StatusBadGateway, errorResponse{Error: aio.Error()})
 		return
 	}
 
