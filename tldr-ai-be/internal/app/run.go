@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -68,12 +69,18 @@ func Run() error {
 		MaxHeaderBytes:    maxHeaderBytes,
 	}
 
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	log.Printf("tldr-ai-be: started successfully — http://localhost:%s (API: /api/processText, /api/usage, /health) — press Ctrl+C to stop", port)
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- srv.ListenAndServe()
+		errCh <- srv.Serve(ln)
 	}()
 
 	select {

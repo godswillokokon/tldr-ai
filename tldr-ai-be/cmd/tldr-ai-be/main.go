@@ -9,12 +9,6 @@ import (
 )
 
 func main() {
-	if err := config.LoadDotEnv(".env.example"); err != nil {
-		log.Fatal(err)
-	}
-	if err := config.LoadDotEnv("tldr-ai-be/.env.example"); err != nil {
-		log.Fatal(err)
-	}
 	if err := config.LoadDotEnvOverride(".env"); err != nil {
 		log.Fatal(err)
 	}

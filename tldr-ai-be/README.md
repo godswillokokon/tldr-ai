@@ -4,9 +4,9 @@ HTTP API for text summarization (Anthropic), health, usage, and rate limits.
 
 ## Configuration
 
-### Committed defaults: `.env.example`
+### Template: `.env.example` (not loaded at runtime)
 
-The file `tldr-ai-be/.env.example` is safe to commit. It documents every variable (no real API keys). Values there are non-secret defaults such as `PORT=8080`, rate limit and usage defaults, and empty `ANTHROPIC_API_KEY=`.
+The file `tldr-ai-be/.env.example` is safe to commit. It documents every variable (no real API keys). The server **does not** read it automatically — copy it to `.env` and edit there.
 
 ### Local secrets: `.env` (never commit)
 
@@ -18,14 +18,12 @@ You can also place a repo-root `.env` for tools that run from the monorepo root;
 
 ### Load order (process startup)
 
-On startup, the binary loads, in order:
+On startup, the binary loads only (missing files are ignored):
 
-1. `LoadDotEnv(".env.example")`
-2. `LoadDotEnv("tldr-ai-be/.env.example")`
-3. `LoadDotEnvOverride(".env")`
-4. `LoadDotEnvOverride("tldr-ai-be/.env")`
+1. `LoadDotEnvOverride(".env")` — repo root, when present
+2. `LoadDotEnvOverride("tldr-ai-be/.env")` — service directory, when present
 
-`LoadDotEnv` only fills keys that are **not** already set in the environment (so CI and shell exports win). `LoadDotEnvOverride` applies your local `.env` files and overrides. Missing files are ignored.
+Later files override earlier ones for the same variable. Environment variables already set in the shell **are overwritten** by values in these files (override mode).
 
 ### Variables (see `.env.example`)
 

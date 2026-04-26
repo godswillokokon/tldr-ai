@@ -8,6 +8,6 @@ type ProcessRequest struct {
 // ProcessResponse is the expected structured output from the model.
 type ProcessResponse struct {
 	Summary     string   `json:"summary"`
-	ActionItems []string `json:"action_items"`
+	ActionItems []string `json:"actionItems"`
 	Model       string   `json:"model,omitempty"`
 }

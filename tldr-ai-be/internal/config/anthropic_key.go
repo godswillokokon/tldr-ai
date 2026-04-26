@@ -53,5 +53,5 @@ func LogStartupEnvHint() {
 	if k != "" && !IsAnthropicPlaceholderKey(k) {
 		return
 	}
-	log.Print("tldr-ai-be: ANTHROPIC_API_KEY is missing or looks like a placeholder. Put a real key in tldr-ai-be/.env (or export it); use .env.example for safe defaults, never commit keys.")
+	log.Print("tldr-ai-be: ANTHROPIC_API_KEY is missing or looks like a placeholder. Put a real key in tldr-ai-be/.env (or export it); copy from .env.example as a template, never commit keys.")
 }
