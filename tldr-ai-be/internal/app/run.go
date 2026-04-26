@@ -2,13 +2,15 @@ package app
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
+
+	"tldr-ai-be/internal/config"
+	"tldr-ai-be/internal/middleware"
+	"tldr-ai-be/internal/web"
 )
 
 const (
@@ -21,10 +23,14 @@ const (
 	maxHeaderBytes    = 1 << 20 // 1 MiB
 )
 
-func newMux() *http.ServeMux {
+func newHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
-	return mux
+	h := http.Handler(mux)
+	h = middleware.RequestID(h)
+	h = middleware.SecurityHeaders(h)
+	h = middleware.Recover(h)
+	return h
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,24 +38,24 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if r.Method != http.MethodHead {
-		_, _ = io.WriteString(w, `{"status":"ok"}`)
+	if r.Method == http.MethodHead {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		return
 	}
+	_ = web.WriteJSON(w, http.StatusOK, struct {
+		Status string `json:"status"`
+	}{Status: "ok"})
 }
 
 // Run starts the HTTP server and blocks until SIGINT/SIGTERM or ListenAndServe fails.
 func Run() error {
-	port := strings.TrimSpace(os.Getenv("PORT"))
-	if port == "" {
-		port = defaultPort
-	}
+	port := config.GetEnv("PORT", defaultPort)
 	addr := ":" + port
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           newMux(),
+		Handler:           newHandler(),
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,

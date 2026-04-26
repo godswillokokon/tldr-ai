@@ -9,8 +9,8 @@ import (
 )
 
 func TestHealth_GET(t *testing.T) {
-	mux := newMux()
-	srv := httptest.NewServer(mux)
+	h := newHandler()
+	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 
 	resp, err := http.Get(srv.URL + "/health")
@@ -24,6 +24,12 @@ func TestHealth_GET(t *testing.T) {
 	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "application/json") {
 		t.Fatalf("Content-Type: %q", ct)
 	}
+	if id := resp.Header.Get("X-Request-ID"); id == "" {
+		t.Fatalf("expected X-Request-ID")
+	}
+	if resp.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("expected nosniff")
+	}
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != `{"status":"ok"}` {
 		t.Fatalf("body: %s", body)
@@ -31,8 +37,8 @@ func TestHealth_GET(t *testing.T) {
 }
 
 func TestHealth_HEAD(t *testing.T) {
-	mux := newMux()
-	srv := httptest.NewServer(mux)
+	h := newHandler()
+	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 
 	req, _ := http.NewRequest(http.MethodHead, srv.URL+"/health", nil)
@@ -51,8 +57,8 @@ func TestHealth_HEAD(t *testing.T) {
 }
 
 func TestHealth_otherMethod(t *testing.T) {
-	mux := newMux()
-	srv := httptest.NewServer(mux)
+	h := newHandler()
+	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 
 	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/health", nil)
