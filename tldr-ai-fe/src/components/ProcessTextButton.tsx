@@ -24,7 +24,7 @@ export function ProcessTextButton({loading, disabled, onPress}: Props) {
       {loading ? (
         <ActivityIndicator color={t.ctaText} />
       ) : (
-        <Text style={styles.buttonText}>Generate summary</Text>
+        <Text style={styles.buttonText}>Summarize</Text>
       )}
     </TouchableOpacity>
   );

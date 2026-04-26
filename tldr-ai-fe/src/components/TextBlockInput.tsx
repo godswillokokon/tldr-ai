@@ -17,7 +17,7 @@ export function TextBlockInput({value, onChangeText}: Props) {
     <TextInput
       style={styles.input}
       multiline
-      placeholder="Paste notes, email, or meeting transcript"
+      placeholder="Paste or type your text (at least 20 characters)…"
       placeholderTextColor={t.textMuted}
       value={value}
       onChangeText={onChangeText}

@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
-import {Alert} from 'react-native';
+import {Alert, Keyboard} from 'react-native';
 
 import {fetchProcessText} from '../data/processTextRepository';
 import {MIN_INPUT_LENGTH} from '../domain/constants';
@@ -39,6 +39,7 @@ export function useProcessText(options: UseProcessTextOptions = {}) {
       );
       return;
     }
+    Keyboard.dismiss();
     setLoading(true);
     try {
       const response = await run(trimmed);

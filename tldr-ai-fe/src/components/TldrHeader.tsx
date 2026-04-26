@@ -13,7 +13,7 @@ export function TldrHeader() {
         <Text style={styles.titleHuman}>clear next moves.</Text>
       </Text>
       <Text style={styles.subtitle}>
-        Paste or type — get a sharp summary and three concrete next steps.
+        Paste or type a note, email, or transcript — we return a tight summary and three next steps.
       </Text>
     </View>
   );
@@ -21,8 +21,8 @@ export function TldrHeader() {
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 10,
-    paddingBottom: 4,
+    gap: 12,
+    paddingBottom: 6,
   },
   accentRule: {
     width: 48,

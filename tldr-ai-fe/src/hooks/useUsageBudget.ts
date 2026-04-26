@@ -20,9 +20,9 @@ export function useUsageBudget() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    refresh().catch(() => {});
     const id = setInterval(() => {
-      void refresh();
+      refresh().catch(() => {});
     }, POLL_MS);
     return () => clearInterval(id);
   }, [refresh]);

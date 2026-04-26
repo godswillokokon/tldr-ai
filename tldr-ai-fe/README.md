@@ -1,15 +1,42 @@
 # Tldr-ai frontend (React Native CLI)
 
-**TldrAi** — minimal UI: paste text, call the Go backend, show a **summary** and **three action items**.
+**TldrAi** — paste or type text, call the Go backend, show a **summary** and **three action items**.
 
 This project uses **Yarn** (see `packageManager` in [`package.json`](package.json)). Install uses a classic **`node_modules`** layout ([`.yarnrc.yml`](.yarnrc.yml) `nodeLinker: node-modules`) so Metro and React Native work reliably.
 
-## Requirements
+## Prerequisites
 
-- [Corepack](https://nodejs.org/api/corepack.html) enabled (ships with Node 16.10+): `corepack enable` — then Yarn version follows `packageManager` in `package.json`.
-- [React Native dev environment](https://reactnative.dev/docs/set-up-your-environment) (Metro, Xcode and/or Android toolchain).
-- **Node** — **≥ 22.11.0 required** (`package.json` `engines`). Metro depends on **`Array.prototype.toReversed()`** (ES2023); older Node (e.g. 18) fails with `configs.toReversed is not a function` when you run `yarn start`. Use [`.nvmrc`](.nvmrc) / [`.node-version`](.node-version) with **nvm** / **fnm** (`nvm install && nvm use`), or **asdf**: `asdf install nodejs 22.11.0` (see [`.tool-versions`](.tool-versions) at the app root — `ios/.tool-versions` is Ruby-only for CocoaPods).
-- **Backend** — run [`tldr-ai-be`](../tldr-ai-be/README.md) first; the app expects the API on port **8080** by default.
+- **[Corepack](https://nodejs.org/api/corepack.html)** — `corepack enable`; Yarn version follows `packageManager` in `package.json`.
+- **[React Native dev environment](https://reactnative.dev/docs/set-up-your-environment)** — Metro, Xcode (iOS), and/or Android Studio / SDK.
+- **Node ≥ 22.11.0** — `package.json` `engines`; use [`.nvmrc`](.nvmrc) / [`.node-version`](.node-version) (nvm, fnm, or asdf for Node).
+- **Backend on port 8080** — start [`tldr-ai-be`](../tldr-ai-be/README.md) before exercising the app from a simulator or emulator.
+- **iOS (CocoaPods)** — from `ios/`: `bundle install` then `bundle exec pod install`. Ruby is pinned in [`.tool-versions`](.tool-versions) and [`ios/.tool-versions`](ios/.tool-versions) for asdf users.
+
+## Quick smoke test (curl)
+
+With **tldr-ai-be** listening on `8080` (default `PORT`):
+
+```bash
+# Health
+curl -sS "http://localhost:8080/health"
+
+# Usage snapshot (JSON)
+curl -sS "http://localhost:8080/api/usage"
+
+# Process text (needs ≥20 runes of text on the server; example uses 20+ ASCII chars)
+curl -sS -X POST "http://localhost:8080/api/processText" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"aaaaaaaaaaaaaaaaaaaa"}'
+```
+
+Expect `200` and JSON with `summary` and `actionItems` (three strings) when the AI provider is configured. A `503` or error JSON usually means missing/invalid `ANTHROPIC_API_KEY` on the server.
+
+## Frontend ↔ backend alignment
+
+- **Minimum input** — the app enables submit when **trimmed length ≥ 20** characters ([`MIN_INPUT_LENGTH`](src/domain/constants.ts)). The Go API enforces **≥ 20 UTF-8 runes** after trim; for most English text these match. Very high Unicode-to-byte edge cases can differ slightly.
+- **Success JSON** — `POST /api/processText` returns **`summary`** (string) and **`actionItems`** (array of exactly three strings), optional **`model`**. The client parser rejects anything else ([`parseProcessTextResponse`](src/domain/parseProcessResponse.ts)).
+- **Usage** — `GET /api/usage` returns the Go `Snapshot` shape (`used`, `cap`, `unlimited`, `spentUsd`, `budgetUsd`, …). The app maps that in [`parseUsageResponse`](src/domain/parseUsageResponse.ts); set caps with **`USAGE_MAX_CALLS`** / **`USAGE_BUDGET_USD`** in the server `.env` (see `tldr-ai-be/.env.example`).
+- **Android HTTP** — debug builds set **`usesCleartextTraffic`** to **`true`** via Gradle `manifestPlaceholders` so `http://10.0.2.2:8080` reaches your host. **Release** uses **`false`**; ship **HTTPS** or a network security config if you need cleartext in production.
 
 ## Install and run
 
@@ -25,16 +52,6 @@ yarn ios
 # or
 yarn android
 ```
-
-**iOS (CocoaPods):** from `ios/`:
-
-```bash
-cd ios
-bundle install
-bundle exec pod install
-```
-
-If you use **[asdf](https://asdf-vm.com/)**, Ruby is pinned in [`.tool-versions`](.tool-versions) and [`ios/.tool-versions`](ios/.tool-versions) (default **3.2.3**). Install it if needed: `asdf install ruby 3.2.3`, or change both files to another version you already have (e.g. `3.4.4`) so `bundle` is not blocked by “No version is set for command bundle”.
 
 ```bash
 yarn lint
