@@ -33,10 +33,10 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+.kotlin/
 
-# env
+# Local env (if you add Metro/react-native-dotenv secrets later)
 .env
-
 # node.js
 #
 node_modules/
