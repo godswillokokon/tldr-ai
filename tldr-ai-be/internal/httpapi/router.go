@@ -2,17 +2,21 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 
 	"tldr-ai-be/internal/middleware"
 	"tldr-ai-be/internal/ratelimit"
 )
 
-// NewHandler registers /health and /api/processText and wraps the mux with
+// NewHandler registers routes and wraps the mux with
 // Recover(SecurityHeaders(RequestID(CORS(mux)))).
-// trustProxy and corsAllow are passed to client IP and CORS. limiter can be nil (no limit).
 func NewHandler(d *RouterDeps, trustProxy bool, corsAllow string, limiter *ratelimit.Limiter) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
+	mux.Handle("GET /api/usage", http.HandlerFunc(d.usageGet))
+	if strings.TrimSpace(d.UsageResetSecret) != "" {
+		mux.Handle("POST /api/admin/usage-reset", http.HandlerFunc(d.usageAdminReset))
+	}
 	pt := d.processText
 	if limiter != nil {
 		p := limiter.HTTPMiddleware(func(r *http.Request) string { return ClientIP(r, trustProxy) })

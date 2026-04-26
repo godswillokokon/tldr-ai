@@ -15,6 +15,7 @@ import (
 	"tldr-ai-be/internal/httpapi"
 	"tldr-ai-be/internal/ratelimit"
 	"tldr-ai-be/internal/service"
+	"tldr-ai-be/internal/usage"
 )
 
 const (
@@ -43,7 +44,13 @@ func newHandlerWithEnv(get func(string) string) http.Handler {
 	trust := strings.TrimSpace(get("TRUST_PROXY")) == "1"
 	cors := strings.TrimSpace(get("CORS_ALLOW_ORIGIN"))
 	lim := ratelimit.Init(get)
-	return httpapi.NewHandler(&httpapi.RouterDeps{Processor: proc}, trust, cors, lim)
+	bud := usage.NewFromEnv(get)
+	usageReset := strings.TrimSpace(get("USAGE_RESET_SECRET"))
+	return httpapi.NewHandler(&httpapi.RouterDeps{
+		Processor:        proc,
+		Budget:           bud,
+		UsageResetSecret: usageReset,
+	}, trust, cors, lim)
 }
 
 // Run starts the HTTP server and blocks until SIGINT/SIGTERM or ListenAndServe fails.
